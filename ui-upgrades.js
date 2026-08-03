@@ -1,15 +1,11 @@
 (()=>{
 'use strict';
-if(window.__circulosUiUpgradesV1)return;
-window.__circulosUiUpgradesV1=true;
+if(window.__circulosUiUpgradesV2)return;
+window.__circulosUiUpgradesV2=true;
 
 const DEGREE_MAP={
-  major:['I','III','V'],
-  minor:['I','♭III','V'],
-  dominant7:['I','III','V','♭VII'],
-  major7:['I','III','V','VII'],
-  minor7:['I','♭III','V','♭VII'],
-  diminished:['I','♭III','♭V']
+  major:['I','III','V'],minor:['I','♭III','V'],dominant7:['I','III','V','♭VII'],
+  major7:['I','III','V','VII'],minor7:['I','♭III','V','♭VII'],diminished:['I','♭III','♭V']
 };
 const QUALITY_FROM_TEXT=text=>{
   const value=String(text||'').toLowerCase();
@@ -26,15 +22,14 @@ style.textContent=`
 .selected-chord-degrees{margin:8px 0 2px;font-size:11px}.piano-voicing-degrees{margin:14px 0 -8px;font-size:11px}
 .library-root-degrees{margin-top:1px;font-size:9px}.library-root-tones{margin-top:-2px}
 .performance-piano-degrees{margin-top:5px}.performance-piano-summary small{line-height:1.35}
-.harmony-wheel-chord-degrees{fill:var(--muted);font-size:12px;font-weight:820;letter-spacing:.08em;text-anchor:middle}
-html[data-theme="dark"] .harmony-wheel-chord-degrees{fill:var(--muted)}
+.harmony-wheel-chord-degrees{display:none!important}
+#instrumento .instrument-tabs .segmented,#libraryPerformanceSwitch .segmented{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 @media(max-width:560px){.library-root-degrees{font-size:8px}.selected-chord-degrees,.piano-voicing-degrees{font-size:10px}}
 `;
 document.head.appendChild(style);
 
 function currentLibraryQuality(){return document.getElementById('libraryQualitySelect')?.value||document.querySelector('#libraryQualities [data-library-quality].active')?.dataset.libraryQuality||'major';}
 function circleQuality(){return QUALITY_FROM_TEXT(document.querySelector('#diatonicGrid .chord-card.active .chord-quality')?.textContent);}
-
 function decorateChordCards(){
   document.querySelectorAll('#diatonicGrid .chord-card').forEach(card=>{
     const notes=card.querySelector('.chord-notes,.chord-card-notes');if(!notes)return;
@@ -72,52 +67,120 @@ function decorateLibraryPiano(){
   if(!degrees){degrees=document.createElement('small');degrees.id='performancePianoDegrees';degrees.className='performance-piano-degrees';notes.before(degrees);}
   degrees.textContent=degreeText(currentLibraryQuality());
 }
-function decorateHarmonyWheel(){
-  const cards=[...document.querySelectorAll('#diatonicGrid .chord-card')];
-  document.querySelectorAll('#harmonyWheel .harmony-wheel-node').forEach(node=>{
-    const index=Number(node.dataset.wheelIndex),card=cards[index],notes=node.querySelector('.harmony-wheel-notes');
-    if(!card||!notes||node.querySelector('.harmony-wheel-chord-degrees'))return;
-    const degrees=document.createElementNS('http://www.w3.org/2000/svg','text');
-    degrees.setAttribute('class','harmony-wheel-chord-degrees');
-    degrees.setAttribute('x',notes.getAttribute('x')||'0');
-    const noteY=Number(notes.getAttribute('y'))||0;
-    degrees.setAttribute('y',String(noteY-18));
-    degrees.textContent=degreeText(QUALITY_FROM_TEXT(card.querySelector('.chord-quality')?.textContent));
-    notes.setAttribute('y',String(noteY+5));
-    notes.before(degrees);
-  });
-}
-function decorateAll(){decorateChordCards();decorateCircleDetail();decorateRootCards();decorateLibraryPiano();decorateHarmonyWheel();}
+function cleanupCircleDegrees(){document.querySelectorAll('#harmonyWheel .harmony-wheel-chord-degrees').forEach(node=>node.remove());}
+function decorateAll(){decorateChordCards();decorateCircleDetail();decorateRootCards();decorateLibraryPiano();cleanupCircleDegrees();reorderInstrumentControls();}
 let queued=false;
 function scheduleDecorate(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorateAll();});}
+
+function reorderPair(container,guitarSelector,pianoSelector){
+  if(!container)return;
+  const guitar=container.querySelector(guitarSelector),piano=container.querySelector(pianoSelector);
+  if(guitar&&piano)container.append(guitar,piano);
+}
+function reorderInstrumentControls(){
+  document.querySelectorAll('#instrumento .instrument-tabs .segmented').forEach(segment=>reorderPair(segment,'[data-instrument="guitar"]','[data-instrument="piano"]'));
+  document.querySelectorAll('#libraryPerformanceSwitch .segmented').forEach(segment=>reorderPair(segment,'[data-performance-library="guitar"]','[data-performance-library="piano"]'));
+}
+function syncCircleInstrument(instrument){
+  const piano=instrument==='piano',panel=document.getElementById('instrumento'),pianoPanel=document.getElementById('pianoPanel'),guitarPanel=document.getElementById('guitarPanel');
+  if(!panel||!pianoPanel||!guitarPanel)return;
+  panel.querySelectorAll('[data-instrument]').forEach(button=>button.classList.toggle('active',button.dataset.instrument===instrument));
+  pianoPanel.classList.toggle('hidden',!piano);guitarPanel.classList.toggle('hidden',piano);
+  pianoPanel.style.setProperty('display',piano?'block':'none','important');
+  guitarPanel.style.setProperty('display',piano?'none':'block','important');
+  panel.dataset.visibleInstrument=instrument;
+  if(piano){requestAnimationFrame(()=>{document.getElementById('pianoKeyboard')?.style.removeProperty('display');window.dispatchEvent(new Event('resize'));});}
+}
+function syncLibraryInstrument(instrument){
+  const view=document.getElementById('chordsView'),control=document.getElementById('libraryPerformanceSwitch'),pianoPanel=document.getElementById('libraryPianoPanel'),grid=document.getElementById('chordLibraryGrid');
+  if(!view||!control||!pianoPanel||!grid)return;
+  control.querySelectorAll('[data-performance-library]').forEach(button=>button.classList.toggle('active',button.dataset.performanceLibrary===instrument));
+  view.dataset.performanceInstrument=instrument;
+  if(instrument==='piano'){
+    grid.style.setProperty('display','none','important');pianoPanel.style.setProperty('display','block','important');
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  }else{
+    grid.style.removeProperty('display');pianoPanel.style.setProperty('display','none','important');
+  }
+}
+function openMenu(open){
+  const menu=document.getElementById('sideMenu'),backdrop=document.getElementById('menuBackdrop'),button=document.getElementById('menuBtn');if(!menu||!backdrop||!button)return;
+  document.body.classList.toggle('menu-open',open);menu.classList.toggle('open',open);backdrop.classList.toggle('open',open);
+  menu.setAttribute('aria-hidden',String(!open));backdrop.setAttribute('aria-hidden',String(!open));button.setAttribute('aria-expanded',String(open));
+}
+function showView(name){
+  const circles=name==='circles',circlesView=document.getElementById('circlesView'),chordsView=document.getElementById('chordsView'),bottom=document.getElementById('bottomNav');
+  if(!circlesView||!chordsView||!bottom)return;
+  circlesView.classList.toggle('view-hidden',!circles);chordsView.classList.toggle('view-hidden',circles);bottom.classList.toggle('view-hidden',!circles);
+  document.querySelectorAll('[data-app-view]').forEach(button=>{
+    const active=button.dataset.appView===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false');
+    const badge=button.querySelector('.app-choice-badge');if(badge)badge.textContent=active?'Activo':'Abrir';
+  });
+  localStorage.setItem('circulos-active-view',name);openMenu(false);window.scrollTo({top:0,behavior:'smooth'});setTimeout(scheduleDecorate,0);
+}
+
+const pointerStarts=new Map(),suppressClicks=new WeakMap();
+let forwarding=false;
+function forwardClick(button){
+  if(!button)return;
+  forwarding=true;try{button.click();}finally{forwarding=false;}
+  suppressClicks.set(button,Date.now()+800);
+}
+function instantTarget(target){return target.closest?.('#menuBtn,#menuCloseBtn,#menuBackdrop,[data-app-view],#instrumento [data-instrument],#libraryPerformanceSwitch [data-performance-library]')||null;}
+window.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse')return;
+  const target=instantTarget(event.target);if(target)pointerStarts.set(event.pointerId,{target,x:event.clientX,y:event.clientY});
+},true);
+window.addEventListener('pointerup',event=>{
+  if(event.pointerType==='mouse')return;
+  const start=pointerStarts.get(event.pointerId);pointerStarts.delete(event.pointerId);if(!start)return;
+  if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>12)return;
+  const target=start.target;event.preventDefault();event.stopImmediatePropagation();suppressClicks.set(target,Date.now()+800);
+  if(target.id==='menuBtn'){openMenu(true);return;}
+  if(target.id==='menuCloseBtn'||target.id==='menuBackdrop'){openMenu(false);return;}
+  if(target.matches('[data-app-view]')){showView(target.dataset.appView);return;}
+  if(target.matches('#instrumento [data-instrument]')){
+    forwardClick(target);syncCircleInstrument(target.dataset.instrument);return;
+  }
+  if(target.matches('#libraryPerformanceSwitch [data-performance-library]')){
+    forwardClick(target);syncLibraryInstrument(target.dataset.performanceLibrary);return;
+  }
+},true);
+window.addEventListener('pointercancel',event=>pointerStarts.delete(event.pointerId),true);
+window.addEventListener('click',event=>{
+  if(forwarding)return;
+  const target=instantTarget(event.target);if(target&&(suppressClicks.get(target)||0)>Date.now()){
+    event.preventDefault();event.stopImmediatePropagation();
+  }
+},true);
 
 const themeMedia=window.matchMedia('(prefers-color-scheme: dark)');
 function themeChoice(){return localStorage.getItem('circulos-theme')||'system';}
 function applyTheme(){
   const choice=themeChoice(),resolved=choice==='system'?(themeMedia.matches?'dark':'light'):choice;
-  document.documentElement.dataset.theme=resolved;
-  document.documentElement.style.colorScheme=resolved;
+  document.documentElement.dataset.theme=resolved;document.documentElement.style.colorScheme=resolved;
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=resolved==='dark'?'#101110':'#f5f5f2';
   document.querySelectorAll('[data-theme-choice]').forEach(button=>button.classList.toggle('active',button.dataset.themeChoice===choice));
 }
 function reinforceTheme(){applyTheme();requestAnimationFrame(applyTheme);setTimeout(applyTheme,120);}
 try{themeMedia.addEventListener('change',reinforceTheme);}catch(e){themeMedia.addListener?.(reinforceTheme);}
-window.addEventListener('pageshow',reinforceTheme);
-window.addEventListener('focus',reinforceTheme);
-window.addEventListener('orientationchange',()=>setTimeout(reinforceTheme,160));
+window.addEventListener('pageshow',reinforceTheme);window.addEventListener('focus',reinforceTheme);window.addEventListener('orientationchange',()=>setTimeout(reinforceTheme,160));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)reinforceTheme();});
 document.addEventListener('click',event=>{
-  const themeButton=event.target.closest?.('[data-theme-choice]');
-  if(themeButton)setTimeout(reinforceTheme,0);
-  if(event.target.closest?.('#diatonicGrid .chord-card,#libraryRoots [data-library-root],[data-library-notation],[data-performance-library]'))scheduleDecorate();
+  if(event.target.closest?.('[data-theme-choice]'))setTimeout(reinforceTheme,0);
+  if(event.target.closest?.('#diatonicGrid .chord-card,#libraryRoots [data-library-root],[data-library-notation],[data-performance-library],[data-instrument]'))scheduleDecorate();
 });
 document.addEventListener('change',event=>{if(event.target.id==='libraryQualitySelect'||event.target.id==='minimalScaleSelect')scheduleDecorate();});
 setInterval(()=>{if(themeChoice()==='system'&&document.visibilityState==='visible')applyTheme();},1200);
 
 function init(){
   reinforceTheme();decorateAll();
-  const observer=new MutationObserver(scheduleDecorate);
-  observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  const bodyObserver=new MutationObserver(scheduleDecorate);bodyObserver.observe(document.body,{childList:true,subtree:true});
+  setTimeout(()=>{
+    reorderInstrumentControls();
+    const circleActive=document.querySelector('#instrumento [data-instrument].active');syncCircleInstrument(circleActive?.dataset.instrument||'guitar');
+    const libraryActive=document.querySelector('#libraryPerformanceSwitch [data-performance-library].active');if(libraryActive)syncLibraryInstrument(libraryActive.dataset.performanceLibrary);
+  },80);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
