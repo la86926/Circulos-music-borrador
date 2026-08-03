@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
-if(window.__circulosPianoSyncV3)return;
-window.__circulosPianoSyncV3=true;
+if(window.__circulosPianoSyncV4)return;
+window.__circulosPianoSyncV4=true;
 
 const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,'E#':5,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11};
 const CHROMATIC=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -19,9 +19,14 @@ polish.textContent=`
 #pianoKeyboard[data-keyboard-mode="play"],#performancePianoKeyboard[data-keyboard-mode="play"],#pianoKeyboard[data-keyboard-mode="play"] button,#performancePianoKeyboard[data-keyboard-mode="play"] button{touch-action:none!important}
 #pianoKeyboard[data-keyboard-mode="move"],#performancePianoKeyboard[data-keyboard-mode="move"],#pianoKeyboard[data-keyboard-mode="move"] button,#performancePianoKeyboard[data-keyboard-mode="move"] button{touch-action:pan-x pan-y!important;cursor:grab!important}
 #pianoKeyboard[data-keyboard-mode="move"]:active,#performancePianoKeyboard[data-keyboard-mode="move"]:active{cursor:grabbing!important}
-.keyboard-move-toggle{min-height:42px;border:1px solid var(--line);border-radius:13px;background:var(--surface2);color:var(--text);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;font-size:12px;font-weight:780;cursor:pointer;white-space:nowrap}
-.keyboard-move-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.keyboard-move-toggle[aria-pressed="true"]{background:var(--accent);color:var(--contrast);border-color:var(--accent)}
+.keyboard-mode-slider{position:relative;display:inline-block;flex:0 0 auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.keyboard-mode-slider>input{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+.keyboard-mode-track{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;width:190px;height:44px;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--surface2);overflow:hidden;isolation:isolate}
+.keyboard-mode-thumb{position:absolute;z-index:-1;left:4px;top:4px;width:calc(50% - 4px);height:34px;border-radius:999px;background:var(--accent);box-shadow:0 3px 10px rgba(0,0,0,.12);transition:transform .2s ease}
+.keyboard-mode-label{position:relative;z-index:1;display:grid;place-items:center;height:34px;color:var(--muted);font-size:11px;font-weight:820;letter-spacing:.02em;transition:color .2s ease}
+.keyboard-mode-slider>input:not(:checked)+.keyboard-mode-track .keyboard-mode-label:first-of-type,.keyboard-mode-slider>input:checked+.keyboard-mode-track .keyboard-mode-label:last-of-type{color:var(--contrast)}
+.keyboard-mode-slider>input:checked+.keyboard-mode-track .keyboard-mode-thumb{transform:translateX(100%)}
+.keyboard-mode-slider>input:focus-visible+.keyboard-mode-track{outline:3px solid color-mix(in srgb,var(--accent) 25%,transparent);outline-offset:2px}
 #pianoPanel .visual-top{justify-content:space-between;align-items:center}
 #libraryPianoPanel .performance-piano-summary{align-items:center}
 .performance-instrument-switch{margin:0 18px 12px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}
@@ -30,7 +35,7 @@ polish.textContent=`
 .performance-instrument-switch .seg-btn{min-height:48px!important;border-radius:14px!important}
 #chordsView>.panel:last-of-type{padding-top:14px!important}
 #chordsView .library-grid{padding-top:0!important}
-@media(max-width:560px){.keyboard-move-toggle{width:100%;min-height:40px}.performance-instrument-switch{margin:0 16px 10px!important}.performance-instrument-switch .seg-btn{min-height:46px!important}#pianoPanel .visual-top{align-items:stretch}}
+@media(max-width:560px){.keyboard-mode-slider{width:100%}.keyboard-mode-track{width:100%}.performance-instrument-switch{margin:0 16px 10px!important}.performance-instrument-switch .seg-btn{min-height:46px!important}#pianoPanel .visual-top{align-items:stretch}}
 `;
 document.head.appendChild(polish);
 
@@ -58,7 +63,9 @@ function render(force=false){
   const start=48,end=84,keyWidth=cssPx('--key-w',58);
   for(let midi=start;midi<=end;midi++)if(WHITE_PCS.has(midi%12))whites.push(midi);
   hostObserver?.disconnect();
+  const previousMode=host.dataset.keyboardMode||'play';
   host.className='piano library-cloned-piano';
+  host.dataset.keyboardMode=previousMode;
   host.replaceChildren();
   host.setAttribute('role','group');
   host.setAttribute('aria-label',`Piano de ${noteLabel(current.rootPc,currentNotation)} ${QUALITY_LABEL[current.quality]||'mayor'}`);
@@ -117,34 +124,27 @@ function keyboardHostFromKey(key){return key?.closest?.('#pianoKeyboard,#perform
 function keyboardMode(host){return host?.dataset.keyboardMode==='move'?'move':'play';}
 function setKeyboardMode(host,mode){
   if(!host)return;
-  const next=mode==='move'?'move':'play',button=document.querySelector(`[data-keyboard-toggle="${host.id}"]`),scroll=host.closest('.piano-scroll,.performance-piano-scroll');
+  const next=mode==='move'?'move':'play',control=document.querySelector(`[data-keyboard-toggle="${host.id}"]`),input=control?.querySelector('input'),scroll=host.closest('.piano-scroll,.performance-piano-scroll');
   host.dataset.keyboardMode=next;
   scroll?.classList.toggle('keyboard-moving',next==='move');
-  if(button){
-    button.setAttribute('aria-pressed',String(next==='move'));
-    button.innerHTML=next==='move'?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M4 12h16"/></svg><span>Listo para tocar</span>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M4 12h16"/></svg><span>Mover teclado</span>';
-    button.setAttribute('aria-label',next==='move'?'Salir del modo traslado y volver a tocar':'Activar el traslado del teclado sin reproducir notas');
-  }
+  if(input){input.checked=next==='move';input.setAttribute('aria-checked',String(input.checked));}
   for(const[pointerId,item]of activePointers)if(item.host===host)activePointers.delete(pointerId);
 }
-function makeMoveButton(host){
+function makeMoveControl(host){
   if(!host||document.querySelector(`[data-keyboard-toggle="${host.id}"]`))return;
-  const button=document.createElement('button');
-  button.type='button';button.className='keyboard-move-toggle';button.dataset.keyboardToggle=host.id;
-  button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();setKeyboardMode(host,keyboardMode(host)==='move'?'play':'move');});
-  if(host.id==='pianoKeyboard'){
-    const target=document.querySelector('#pianoPanel .visual-top');
-    target?.appendChild(button);
-  }else{
-    const target=document.querySelector('#libraryPianoPanel .performance-piano-summary');
-    target?.appendChild(button);
-  }
+  const control=document.createElement('label');
+  control.className='keyboard-mode-slider';control.dataset.keyboardToggle=host.id;
+  control.innerHTML='<input type="checkbox" role="switch" aria-label="Cambiar entre tocar y mover el teclado"><span class="keyboard-mode-track"><span class="keyboard-mode-label">Tocar</span><span class="keyboard-mode-label">Mover</span><span class="keyboard-mode-thumb" aria-hidden="true"></span></span>';
+  const input=control.querySelector('input');
+  input.addEventListener('change',()=>setKeyboardMode(host,input.checked?'move':'play'));
+  if(host.id==='pianoKeyboard')document.querySelector('#pianoPanel .visual-top')?.appendChild(control);
+  else document.querySelector('#libraryPianoPanel .performance-piano-summary')?.appendChild(control);
   setKeyboardMode(host,host.dataset.keyboardMode||'play');
 }
 function ensureKeyboardControls(){
   const circle=document.getElementById('pianoKeyboard'),library=document.getElementById('performancePianoKeyboard');
-  if(circle){if(!circle.dataset.keyboardMode)circle.dataset.keyboardMode='play';makeMoveButton(circle);}
-  if(library){if(!library.dataset.keyboardMode)library.dataset.keyboardMode='play';makeMoveButton(library);}
+  if(circle){if(!circle.dataset.keyboardMode)circle.dataset.keyboardMode='play';makeMoveControl(circle);}
+  if(library){if(!library.dataset.keyboardMode)library.dataset.keyboardMode='play';makeMoveControl(library);}
 }
 
 function flashKey(key,duration=170){
