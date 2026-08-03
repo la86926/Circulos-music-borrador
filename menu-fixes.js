@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
-if(window.__circulosMenuFixes)return;
-window.__circulosMenuFixes=true;
+if(window.__circulosMenuFixesV2)return;
+window.__circulosMenuFixesV2=true;
 
 const PC={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,'E#':5,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11};
 const LATIN_TO_EN={DO:'C',RE:'D',MI:'E',FA:'F',SOL:'G',LA:'A',SI:'B'};
@@ -64,7 +64,6 @@ function voicingsFor(root,quality){
   return result.slice(0,4);
 }
 const midiFor=v=>v.frets.map((f,i)=>f===null?null:TUNING_MIDI[i]+f).filter(Number.isFinite);
-
 function playExactVoicing(button){
   const card=button.closest('.voicing-card'),cards=[...document.querySelectorAll('#guitarVoicings .voicing-card')],index=Math.max(0,cards.indexOf(card));
   const chordCard=document.querySelector('#diatonicGrid .chord-card.active')||document.querySelector('#diatonicGrid .chord-card');
@@ -75,11 +74,55 @@ function playExactVoicing(button){
   card?.classList.add('performance-playing');setTimeout(()=>card?.classList.remove('performance-playing'),900);
 }
 
+/* Mantiene el texto del selector y el contenido visibles siempre sincronizados. */
+let circleInstrument=localStorage.getItem('circulos-circle-instrument')||'guitar';
+function applyCircleInstrument(instrument=circleInstrument){
+  const panel=document.getElementById('instrumento'),piano=document.getElementById('pianoPanel'),guitar=document.getElementById('guitarPanel');
+  if(!panel||!piano||!guitar)return;
+  circleInstrument=instrument==='piano'?'piano':'guitar';
+  localStorage.setItem('circulos-circle-instrument',circleInstrument);
+  panel.querySelectorAll('.instrument-tabs [data-instrument]').forEach(button=>button.classList.toggle('active',button.dataset.instrument===circleInstrument));
+  const showPiano=circleInstrument==='piano';
+  piano.classList.toggle('hidden',!showPiano);guitar.classList.toggle('hidden',showPiano);
+  piano.style.setProperty('display',showPiano?'block':'none','important');
+  guitar.style.setProperty('display',showPiano?'none':'block','important');
+  panel.dataset.visibleInstrument=circleInstrument;
+}
+function scheduleCircleSync(instrument){
+  if(instrument)circleInstrument=instrument;
+  requestAnimationFrame(()=>applyCircleInstrument(circleInstrument));
+  setTimeout(()=>applyCircleInstrument(circleInstrument),40);
+  setTimeout(()=>applyCircleInstrument(circleInstrument),160);
+}
+
+document.addEventListener('click',event=>{
+  const instrument=event.target.closest?.('#instrumento .instrument-tabs [data-instrument]');
+  if(instrument)scheduleCircleSync(instrument.dataset.instrument);
+  const view=event.target.closest?.('[data-app-view="circles"]');
+  if(view)scheduleCircleSync();
+},true);
+document.addEventListener('pointerup',event=>{
+  const instrument=event.target.closest?.('#instrumento .instrument-tabs [data-instrument]');
+  if(instrument)scheduleCircleSync(instrument.dataset.instrument);
+},true);
+
+/* En “Nota principal” solo se selecciona la nota; no se reproduce ningún acorde. */
 window.addEventListener('pointerdown',event=>{
+  const root=event.target.closest?.('#libraryRoots [data-library-root]');
+  if(root){event.stopImmediatePropagation();return;}
   const button=event.target.closest?.('#guitarVoicings .voicing-play');if(!button)return;
   event.preventDefault();event.stopImmediatePropagation();playExactVoicing(button);
 },true);
 window.addEventListener('click',event=>{
   if(event.target.closest?.('#guitarVoicings .voicing-play')){event.preventDefault();event.stopImmediatePropagation();}
 },true);
+
+function init(){
+  scheduleCircleSync();
+  const circles=document.getElementById('circlesView');
+  if(circles)new MutationObserver(()=>{if(!circles.classList.contains('view-hidden'))scheduleCircleSync();}).observe(circles,{attributes:true,attributeFilter:['class']});
+  const tabs=document.querySelector('#instrumento .instrument-tabs');
+  if(tabs)new MutationObserver(()=>scheduleCircleSync()).observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
