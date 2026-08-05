@@ -65,6 +65,6 @@ style.textContent=`
 `;
 document.head.appendChild(style);
 import('./faq.js?v=2')
-  .then(()=>import('./faq-stability.js?v=1'))
+  .then(()=>import('./faq-stability.js?v=2'))
   .catch(()=>{});
 })();
