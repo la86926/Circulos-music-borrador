@@ -19,6 +19,14 @@
 #chordsView .panel:has(.library-controls)>.panel-head{order:2;border-bottom:0;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px}
 #chordsView .panel:has(.library-controls)>.panel-head .minimal-library-quality{min-width:120px;width:auto;justify-self:end}
 #chordsView .panel:has(.library-controls)>.library-controls{order:1}
+
+/* Botón hamburguesa flotante (arriba a la izquierda, en ambos menús) */
+html body #menuBtn{position:fixed;top:15px;left:14px;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.16);background:var(--surface)}
+html body .app-header .header-inner{grid-template-columns:minmax(0,1fr) auto;padding-left:70px}
+@media(max-width:700px){
+  html body #menuBtn{top:17px;left:12px}
+  html body .app-header .header-inner{padding-left:60px}
+}
 </style>
 </head>
 <body>
