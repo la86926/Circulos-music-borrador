@@ -20,26 +20,25 @@
 #chordsView .panel:has(.library-controls)>.panel-head .minimal-library-quality{min-width:120px;width:auto;justify-self:end}
 #chordsView .panel:has(.library-controls)>.library-controls{order:1}
 
-/* Botón hamburguesa: FAB flotante sobre el contenido, arriba a la izquierda */
-html body .app-header .header-inner{grid-template-columns:minmax(0,1fr) auto}
-html body #menuBtn{
-  position:fixed;
-  top:88px;
-  left:16px;
-  z-index:50;
-  width:56px;
-  height:56px;
-  border:0;
-  border-radius:50%;
-  background:var(--accent);
-  color:var(--contrast);
-  transition:transform .15s ease;
+/* Cabecera flotante; la hamburguesa vuelve a su sitio dentro de ella */
+html body header.app-header.app-header{
+  position:fixed!important;
+  top:10px!important;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(1240px,calc(100% - 20px));
+  border:1px solid var(--line);
+  border-radius:22px;
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+  z-index:45;
 }
-html body #menuBtn svg{width:26px;height:26px;stroke-width:2}
-html body #menuBtn:active{transform:scale(.93)}
+html body .app-header .header-inner{height:64px}
+html body{padding-top:74px}
 @media(max-width:700px){
-  html body #menuBtn{top:84px;left:14px;width:52px;height:52px}
-  html body #menuBtn svg{width:24px;height:24px}
+  html body header.app-header.app-header{top:8px;width:calc(100% - 16px);border-radius:18px}
+  html body .app-header .header-inner{height:58px}
+  html body{padding-top:66px}
 }
 </style>
 </head>
