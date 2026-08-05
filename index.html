@@ -35,10 +35,15 @@ html body header.app-header.app-header{
 }
 html body .app-header .header-inner{height:64px}
 html body{padding-top:74px}
+/* Franja opaca sobre la cabecera: nada se ve por encima al hacer scroll */
+html body::before{content:"";position:fixed;top:0;left:0;right:0;height:10px;background:var(--bg);z-index:44;pointer-events:none}
+/* La cabecera deja de ser translúcida */
+html body header.app-header.app-header{background:var(--bg)!important}
 @media(max-width:700px){
   html body header.app-header.app-header{top:8px;width:calc(100% - 16px);border-radius:18px}
   html body .app-header .header-inner{height:58px}
   html body{padding-top:66px}
+  html body::before{height:8px}
 }
 </style>
 </head>
