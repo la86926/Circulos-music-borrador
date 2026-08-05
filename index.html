@@ -33,11 +33,10 @@ html body #menuBtn{
   border-radius:50%;
   background:var(--accent);
   color:var(--contrast);
-  box-shadow:0 12px 28px rgba(0,0,0,.30),0 3px 8px rgba(0,0,0,.18);
-  transition:transform .15s ease,box-shadow .15s ease;
+  transition:transform .15s ease;
 }
 html body #menuBtn svg{width:26px;height:26px;stroke-width:2}
-html body #menuBtn:active{transform:scale(.93);box-shadow:0 6px 16px rgba(0,0,0,.26)}
+html body #menuBtn:active{transform:scale(.93)}
 @media(max-width:700px){
   html body #menuBtn{top:84px;left:14px;width:52px;height:52px}
   html body #menuBtn svg{width:24px;height:24px}
@@ -72,7 +71,7 @@ html body #menuBtn:active{transform:scale(.93);box-shadow:0 6px 16px rgba(0,0,0,
 </aside>
 
 <main class="container app-view" id="circlesView">
-<section class="hero" id="inicio"><div><p class="eyebrow">Armonía interactiva</p><h1>Todos los acordes de tu escala.</h1><p class="hero-copy">Elige una escala mayor o menor natural. Consulta sus 7 acordes, escucha cada triada y compara distintas posiciones en piano y guitarra.</p></div><aside class="hero-status"><div class="status-row"><span class="status-label">Escala</span><strong id="statusKey" class="status-value">DO mayor</strong></div><div class="status-row"><span class="status-label">Acorde</span><strong id="statusChord" class="status-value">DO mayor</strong></div><div class="status-row"><span class="status-label">Posición</span><strong id="statusPosition" class="status-value">Fundamental</strong></div></aside></section>
+<section class="hero" id="inicio"><div><h1>Círculos de acordes</h1><p class="hero-copy">Elige una escala mayor o menor natural. Consulta sus 7 acordes, escucha cada triada y compara distintas posiciones en piano y guitarra.</p></div><aside class="hero-status"><div class="status-row"><span class="status-label">Escala</span><strong id="statusKey" class="status-value">DO mayor</strong></div><div class="status-row"><span class="status-label">Acorde</span><strong id="statusChord" class="status-value">DO mayor</strong></div><div class="status-row"><span class="status-label">Posición</span><strong id="statusPosition" class="status-value">Fundamental</strong></div></aside></section>
 <section class="toolbar"><div class="control-card"><span class="label">Nomenclatura</span><div class="segmented seg2"><button class="seg-btn active" data-nomenclature="latin" type="button">Latina</button><button class="seg-btn" data-nomenclature="english" type="button">Inglesa</button></div></div><div class="control-card"><span class="label">Instrumento</span><div class="segmented seg2"><button class="seg-btn active" data-instrument="piano" type="button">Piano</button><button class="seg-btn" data-instrument="guitar" type="button">Guitarra</button></div></div></section>
 <section class="panel" id="selector"><div class="panel-head"><div><h3 class="panel-title">Tonalidad principal</h3><p class="panel-subtitle">Selecciona la tónica de la escala.</p></div></div><div class="key-scroller" id="toneSelector"></div></section>
 <section class="panel" id="escala"><div class="panel-head"><div><p class="eyebrow" id="scaleEyebrow">Escala natural mayor</p><h3 class="panel-title" id="scaleTitle">Escala de DO mayor</h3></div><div class="mode-picker"><span class="label">Tipo de escala</span><div class="segmented seg2"><button class="seg-btn active" data-mode="major" type="button">Mayor</button><button class="seg-btn" data-mode="minor" type="button">Menor natural</button></div></div></div><div class="scale-summary"><p class="scale-pattern" id="scalePattern"><strong>Patrón fijo:</strong> I, IV y V son mayores; ii, iii y vi son menores; vii° es disminuido.</p></div></section>
