@@ -64,4 +64,5 @@ style.textContent=`
 }
 `;
 document.head.appendChild(style);
+import('./faq.js?v=1').catch(()=>{});
 })();
