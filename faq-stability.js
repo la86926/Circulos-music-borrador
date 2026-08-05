@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
-if(window.__circulosFaqStabilityV1)return;
-window.__circulosFaqStabilityV1=true;
+if(window.__circulosFaqStabilityV2)return;
+window.__circulosFaqStabilityV2=true;
 
 const EXTRA_FAQS=[
   {
@@ -35,6 +35,12 @@ function closeMenu(){
   menuButton?.setAttribute('aria-expanded','false');
 }
 
+function setElementVisibility(element,visible){
+  if(!element)return;
+  element.classList.toggle('view-hidden',!visible);
+  if(element.hidden===visible)element.hidden=!visible;
+}
+
 function applyView(name,scroll=false){
   const view=['circles','chords','faq'].includes(name)?name:'circles';
   const circles=document.getElementById('circlesView');
@@ -42,20 +48,17 @@ function applyView(name,scroll=false){
   const faq=document.getElementById('faqView');
   if(!circles||!chords||!faq)return false;
 
-  circles.classList.toggle('view-hidden',view!=='circles');
-  chords.classList.toggle('view-hidden',view!=='chords');
-  faq.classList.toggle('view-hidden',view!=='faq');
-  circles.hidden=view!=='circles';
-  chords.hidden=view!=='chords';
-  faq.hidden=view!=='faq';
-
+  setElementVisibility(circles,view==='circles');
+  setElementVisibility(chords,view==='chords');
+  setElementVisibility(faq,view==='faq');
   document.getElementById('bottomNav')?.classList.toggle('view-hidden',view!=='circles');
+
   document.querySelectorAll('[data-app-view]').forEach(button=>{
     const active=button.dataset.appView===view;
     button.classList.toggle('active',active);
     button.setAttribute('aria-current',active?'page':'false');
     const badge=button.querySelector('.app-choice-badge');
-    if(badge)badge.textContent=active?'Activo':'Abrir';
+    if(badge&&badge.textContent!==(active?'Activo':'Abrir'))badge.textContent=active?'Activo':'Abrir';
   });
 
   localStorage.setItem('circulos-active-view',view);
@@ -167,13 +170,6 @@ function init(attempt=0){
   installFaqEnhancements();
   const saved=localStorage.getItem('circulos-active-view')||'circles';
   applyView(saved,false);
-
-  const views=['circlesView','chordsView','faqView'].map(id=>document.getElementById(id)).filter(Boolean);
-  const guard=new MutationObserver(()=>{
-    const current=localStorage.getItem('circulos-active-view')||'circles';
-    requestAnimationFrame(()=>applyView(current,false));
-  });
-  views.forEach(view=>guard.observe(view,{attributes:true,attributeFilter:['class','hidden']}));
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>init(),{once:true});
